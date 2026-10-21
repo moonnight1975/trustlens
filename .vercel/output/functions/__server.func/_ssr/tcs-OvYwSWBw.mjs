@@ -1,0 +1,151 @@
+//#region node_modules/.nitro/vite/services/ssr/assets/tcs-OvYwSWBw.js
+function leftShoulder(x, peakEnd, zeroAt) {
+	if (x <= peakEnd) return 1;
+	if (x >= zeroAt) return 0;
+	return (zeroAt - x) / (zeroAt - peakEnd);
+}
+function rightShoulder(x, zeroAt, peakStart) {
+	if (x <= zeroAt) return 0;
+	if (x >= peakStart) return 1;
+	return (x - zeroAt) / (peakStart - zeroAt);
+}
+function triangle(x, a, b, c) {
+	if (x <= a || x >= c) return 0;
+	if (x === b) return 1;
+	if (x < b) return (x - a) / (b - a);
+	return (c - x) / (c - b);
+}
+var FUZZY_RULES = [
+	"High support, low contradiction, and high coverage imply high trust.",
+	"High support and low contradiction but low coverage imply medium trust.",
+	"High contradiction implies low trust.",
+	"Low support and low contradiction imply low trust.",
+	"Medium support and low contradiction imply medium trust.",
+	"High support and high contradiction imply low trust."
+];
+function clip(n) {
+	return Math.min(100, Math.max(0, n));
+}
+/** Mamdani inference with min implication, max aggregation, and centroid defuzzification. */
+function fuzzyTrust(input) {
+	const support = clip(input.support);
+	const contradiction = clip(input.contradiction);
+	const coverage = clip(input.coverage);
+	const sHigh = rightShoulder(support, 60, 90);
+	const sMid = triangle(support, 30, 55, 80);
+	const sLow = leftShoulder(support, 20, 50);
+	const cLow = leftShoulder(contradiction, 15, 40);
+	const cHigh = rightShoulder(contradiction, 25, 60);
+	const covHigh = rightShoulder(coverage, 45, 80);
+	const covLow = leftShoulder(coverage, 20, 50);
+	const rules = [
+		{
+			name: "high support, low contradiction, high coverage → high",
+			strength: Math.min(sHigh, cLow, covHigh),
+			shape: (y) => rightShoulder(y, 55, 85)
+		},
+		{
+			name: "high support, low contradiction, low coverage → medium",
+			strength: Math.min(sHigh, cLow, covLow),
+			shape: (y) => triangle(y, 30, 50, 70)
+		},
+		{
+			name: "high contradiction → low",
+			strength: cHigh,
+			shape: (y) => leftShoulder(y, 15, 45)
+		},
+		{
+			name: "low support, low contradiction → low",
+			strength: Math.min(sLow, cLow),
+			shape: (y) => leftShoulder(y, 15, 45)
+		},
+		{
+			name: "medium support, low contradiction → medium",
+			strength: Math.min(sMid, cLow),
+			shape: (y) => triangle(y, 30, 50, 70)
+		},
+		{
+			name: "high support, high contradiction → low",
+			strength: Math.min(sHigh, cHigh),
+			shape: (y) => leftShoulder(y, 15, 45)
+		}
+	];
+	const mu = new Array(101).fill(0);
+	const fired = [];
+	for (const rule of rules) {
+		if (rule.strength <= .02) continue;
+		fired.push(rule.name);
+		for (let y = 0; y <= 100; y++) mu[y] = Math.max(mu[y], Math.min(rule.strength, rule.shape(y)));
+	}
+	let num = 0;
+	let den = 0;
+	for (let y = 0; y <= 100; y++) {
+		num += y * mu[y];
+		den += mu[y];
+	}
+	return {
+		score: den === 0 ? 50 : Math.round(num / den),
+		support: Math.round(support),
+		contradiction: Math.round(contradiction),
+		coverage: Math.round(coverage),
+		rulesFired: fired
+	};
+}
+var TIME_SENSITIVE = /* @__PURE__ */ new RegExp("\\b(current|currently|today|this year|as of|price|president|prime minister|ceo|law|rate|inflation)\\b", "i");
+function monthsBetween(iso, now) {
+	const then = new Date(iso);
+	if (Number.isNaN(then.getTime())) return null;
+	return (now.getTime() - then.getTime()) / 2630016e3;
+}
+/** Trust–confidence–stability. Confidence is an interval, not a second trust score. */
+function tcsAnalysis(input) {
+	const now = input.now ?? /* @__PURE__ */ new Date();
+	const narrative = [];
+	const trust = Math.round(Math.min(100, Math.max(0, input.fuzzyTrust)));
+	const factual = input.claims.filter((c) => c.status !== "NOT_APPLICABLE");
+	let confidence = factual.length === 0 ? 40 : factual.reduce((s, c) => s + c.confidence, 0) / factual.length * 100;
+	if (input.evidence.length > 0) confidence += Math.min(15, input.evidence.length * 3);
+	const lowSources = input.evidence.filter((e) => e.quality === "LOW_CONFIDENCE").length;
+	if (input.evidence.length > 0 && lowSources / input.evidence.length >= .5) {
+		confidence -= 12;
+		narrative.push("At least half of the retrieved sources are low-confidence, so the confidence interval is wider.");
+	}
+	confidence = Math.round(Math.min(100, Math.max(0, confidence)));
+	const half = Math.round(Math.max(6, (100 - confidence) * .35));
+	const confidenceLow = Math.max(0, confidence - half);
+	const confidenceHigh = Math.min(100, confidence + half);
+	const sensitive = input.claims.filter((c) => c.category === "financial" || c.category === "statistical" || c.category === "temporal" || TIME_SENSITIVE.test(c.text));
+	let stability = sensitive.length === 0 ? 85 : 70;
+	if (sensitive.length === 0) narrative.push("No time-sensitive claims were flagged, so stability stays high.");
+	else {
+		narrative.push(`${sensitive.length} claim(s) look time-sensitive (prices, office-holders, rates, or dated facts).`);
+		const dated = input.evidence.filter((e) => e.pageUpdatedAt || e.publishedAt);
+		if (dated.length === 0) {
+			stability -= 20;
+			narrative.push("Those claims have no publication or page-update date on the retrieved sources.");
+		} else if (dated.filter((e) => {
+			const iso = e.publishedAt || e.pageUpdatedAt;
+			if (!iso) return false;
+			const months = monthsBetween(iso, now);
+			return months != null && months > 18;
+		}).length > 0) {
+			stability -= 15;
+			narrative.push("Some retrieved pages were last updated more than 18 months ago. That is a page date, not proof the fact changed.");
+		}
+	}
+	stability = Math.round(Math.min(100, Math.max(0, stability)));
+	const composite = Math.round(.5 * trust + .3 * confidence + .2 * stability);
+	narrative.unshift(`TCS composite ${composite} = 50% fuzzy trust (${trust}) + 30% confidence (${confidence}, interval ${confidenceLow}–${confidenceHigh}) + 20% stability (${stability}).`);
+	narrative.push("User feedback and this index are not ground truth, and this module does not train a model.");
+	return {
+		trust,
+		confidence,
+		confidenceLow,
+		confidenceHigh,
+		stability,
+		composite,
+		narrative
+	};
+}
+//#endregion
+export { fuzzyTrust as n, tcsAnalysis as r, FUZZY_RULES as t };

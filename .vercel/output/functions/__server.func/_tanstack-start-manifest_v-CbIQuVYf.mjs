@@ -1,0 +1,102 @@
+//#region node_modules/.nitro/vite/services/ssr/assets/_tanstack-start-manifest_v-CbIQuVYf.js
+var tsrStartManifest = () => ({ routes: {
+	__root__: {
+		filePath: "/Users/littobiju/Downloads/trust/src/routes/__root.tsx",
+		children: [
+			"/",
+			"/compare",
+			"/history",
+			"/multi",
+			"/settings",
+			"/verify",
+			"/wellbeing",
+			"/api/analyze",
+			"/api/improve-answer",
+			"/api/settings",
+			"/api/voice-assistant",
+			"/report/$id"
+		],
+		preloads: [
+			"/assets/index-DrwQC1pI.js",
+			"/assets/storage-DxD43ByL.js",
+			"/assets/useNavigate-CqWWIjrq.js",
+			"/assets/useRouter-BCsRe9x5.js",
+			"/assets/link-CFKLfD1C.js",
+			"/assets/createLucideIcon-yKqvdLfm.js"
+		],
+		scripts: [{ attrs: {
+			type: "module",
+			async: !0,
+			src: "/assets/index-DrwQC1pI.js"
+		} }]
+	},
+	"/": {
+		filePath: "/Users/littobiju/Downloads/trust/src/routes/index.tsx",
+		children: void 0,
+		preloads: [
+			"/assets/routes-Y9-ba_z0.js",
+			"/assets/api-CtJFOLZp.js",
+			"/assets/loader-circle-DTzIuFqQ.js",
+			"/assets/zap-CWANtghn.js",
+			"/assets/sparkles-Je2AqlN9.js"
+		]
+	},
+	"/compare": {
+		filePath: "/Users/littobiju/Downloads/trust/src/routes/compare.tsx",
+		children: void 0,
+		preloads: ["/assets/compare-CUEGwjlp.js"]
+	},
+	"/history": {
+		filePath: "/Users/littobiju/Downloads/trust/src/routes/history.tsx",
+		children: void 0,
+		preloads: ["/assets/history-pLfphEKG.js", "/assets/format-C0txrztE.js"]
+	},
+	"/multi": {
+		filePath: "/Users/littobiju/Downloads/trust/src/routes/multi.tsx",
+		children: void 0,
+		preloads: [
+			"/assets/multi-CTjnmkVq.js",
+			"/assets/api-CtJFOLZp.js",
+			"/assets/copy-C_6c-ddu.js"
+		]
+	},
+	"/settings": {
+		filePath: "/Users/littobiju/Downloads/trust/src/routes/settings.tsx",
+		children: void 0,
+		preloads: [
+			"/assets/settings-DOzRrdl0.js",
+			"/assets/loader-circle-DTzIuFqQ.js",
+			"/assets/check-B7GRqtRq.js",
+			"/assets/zap-CWANtghn.js",
+			"/assets/sparkles-Je2AqlN9.js"
+		]
+	},
+	"/verify": {
+		filePath: "/Users/littobiju/Downloads/trust/src/routes/verify.tsx",
+		children: void 0,
+		preloads: [
+			"/assets/verify-CCyWAgCs.js",
+			"/assets/api-CtJFOLZp.js",
+			"/assets/zap-CWANtghn.js"
+		]
+	},
+	"/wellbeing": {
+		filePath: "/Users/littobiju/Downloads/trust/src/routes/wellbeing.tsx",
+		children: void 0,
+		preloads: ["/assets/wellbeing-CXrXm4ff.js"]
+	},
+	"/report/$id": {
+		filePath: "/Users/littobiju/Downloads/trust/src/routes/report.$id.tsx",
+		children: void 0,
+		preloads: [
+			"/assets/report._id-C3FDMkxx.js",
+			"/assets/api-CtJFOLZp.js",
+			"/assets/check-B7GRqtRq.js",
+			"/assets/sparkles-Je2AqlN9.js",
+			"/assets/format-C0txrztE.js",
+			"/assets/copy-C_6c-ddu.js"
+		]
+	}
+} });
+//#endregion
+export { tsrStartManifest };
