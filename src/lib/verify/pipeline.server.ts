@@ -366,28 +366,44 @@ export async function improveDraft(raw: unknown) {
     }
   }
   const allowed = allowedUrls(evidence);
-  const model = await grokChat({
-    system:
-      "Revise the answer so it is more accurate using ONLY the evidence JSON. Return JSON with improvedAnswer, corrections, sourcesUsed, uncertainties. Do not invent facts, numbers, quotations, or urls. Every url must be copied from the evidence list. If evidence is insufficient, say so. Do not try to maximize a score. Preserve accurate parts of the original answer. Answer the original question.",
-    user: JSON.stringify({
-      question: parsed.data.question,
-      originalAnswer: parsed.data.answer,
-      originalTrustScore: parsed.data.trustScore,
-      riskLevel: parsed.data.riskLevel,
-      claims: parsed.data.claims,
-      evidence,
-      auditNotes: parsed.data.auditNotes,
-    }),
-    maxTokens: 1200,
-    json: true,
-    timeoutMs: 50_000,
+  const improveInput = JSON.stringify({
+    question: parsed.data.question,
+    originalAnswer: parsed.data.answer,
+    originalTrustScore: parsed.data.trustScore,
+    riskLevel: parsed.data.riskLevel,
+    claims: parsed.data.claims,
+    evidence,
+    auditNotes: parsed.data.auditNotes,
   });
+  const system =
+    "Revise the answer so it is more accurate using ONLY the evidence JSON. Return one valid JSON object with exactly these keys: improvedAnswer (string), corrections (array of {originalClaim, correction, reason}), sourcesUsed (array of {title, url}), uncertainties (array of strings). Use empty arrays when needed. Do not wrap the object in markdown. Do not invent facts, numbers, quotations, or urls. Every url must be copied from the evidence list. If evidence is insufficient, say so. Do not try to maximize a score. Preserve accurate parts of the original answer. Answer the original question.";
+  const requestImprovement = (retry = false) =>
+    grokChat({
+      system: retry
+        ? `${system} Ensure every string is properly escaped and the JSON object is complete. Keep the answer concise enough to fit in the output limit.`
+        : system,
+      user: improveInput,
+      maxTokens: 2400,
+      json: true,
+      timeoutMs: 50_000,
+    });
+
+  const model = await requestImprovement();
   if (!model.ok) return fail(model.error);
   let draft: z.infer<typeof ImproveSchema>;
   try {
     draft = ImproveSchema.parse(parseJsonObject(model.text));
   } catch {
-    return fail("The improvement model returned malformed JSON. Nothing was saved.");
+    // Some OpenAI-compatible providers ignore JSON mode or truncate the first
+    // response. Regenerate once with the same bounded evidence and stricter
+    // formatting instructions before giving up without saving anything.
+    const retry = await requestImprovement(true);
+    if (!retry.ok) return fail(retry.error);
+    try {
+      draft = ImproveSchema.parse(parseJsonObject(retry.text));
+    } catch {
+      return fail("The improvement model could not return a complete structured answer after one retry. Nothing was saved.");
+    }
   }
   const cleaned = stripUnknownUrls(draft.improvedAnswer, allowed);
   const sourcesUsed = draft.sourcesUsed.filter((source) => {
